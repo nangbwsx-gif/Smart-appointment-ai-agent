@@ -1,8 +1,18 @@
 # Smart Appointment AI Agent
 
-Smart Appointment AI Agent 是一个面向按摩门店场景的智能预约与咨询系统。项目基于 FastAPI、LangChain、FAISS、SQLite 和多 Agent 协作架构，实现了意图识别、RAG 知识问答、技师智能匹配、预约管理、用户行为分析和个性化提醒等能力。
+> 面向按摩门店的智能售后咨询与预约系统，基于多 Agent 协作、RAG 与 FastAPI 构建。
 
-这个项目的核心目标不是只做一个普通的预约表单，而是尝试把门店前台日常需要处理的高频工作自动化：理解用户想咨询还是预约，判断服务偏好，匹配合适技师，检查可用时间，生成预约结果，并在必要时结合天气、历史行为和偏好数据给出更贴近用户的提醒与推荐。
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-green)
+![LangChain](https://img.shields.io/badge/LangChain-0.3%2B-orange)
+
+## 快速预览
+
+- 自动识别“咨询 / 预约 / 闲聊”并路由到对应 Agent
+- 从自然语言抽取预约信息，匹配技师并确认时间
+- 基于 FAISS + RAG 回答服务项目、价格、注意事项
+- 记录用户偏好与预约历史，支持回访提醒
+- 提供 Web 界面与 API 文档，可直接运行体验
 
 ## 项目背景
 
@@ -21,6 +31,15 @@ Smart Appointment AI Agent 是一个面向按摩门店场景的智能预约与�
 - **Embedding 缓存优化**：通过数据库缓存和文件缓存减少重复向量计算，提高知识检索性能。
 - **数据管理能力**：支持知识库、技师信息和用户行为数据的增删改查，并在数据变化后自动维护索引。
 - **日志与兜底机制**：保留关键处理过程日志，在信息不足或异常情况下提供更稳定的降级处理。
+
+## 已实现能力
+
+- 意图识别与任务路由：支持咨询、预约、行为分析三类主流程
+- 预约状态机：`appointment_history` 逐轮补全，支持信息缺失追问
+- 技师匹配：基于专长 Embedding 相似度匹配，指定技师不可用时推荐替代
+- RAG 问答：FAISS 向量检索 + 流式响应
+- 用户行为：基础行为记录与偏好统计，支持回访提醒
+- 可运行：FastAPI 服务 + Web 界面 + API 文档
 
 ## 系统架构
 
@@ -52,6 +71,16 @@ DB Layer
 - Web 层绕过 API 直接访问 Services 或 DB
 - Agents 层绕过 Services 直接访问 DB
 - Services 层调用 Agents、API 或 Web
+
+## 架构图
+
+![System Architecture](./architecture%20.jpg)
+
+- Web & Application Layer：页面与入口
+- API Layer：接口编排与响应封装
+- Agents Layer：多 Agent 路由与对话控制
+- Services Layer：业务逻辑、推荐、Embedding
+- DB Layer：数据模型与持久化
 
 ## Agent 设计
 
@@ -115,45 +144,18 @@ DB Layer
 - 生成推荐依据
 - 支持主动反馈和个性化服务
 
-## 核心设计思想
-
-### 1. 用任务分类降低系统复杂度
-
-系统并不让一个 Agent 处理所有事情，而是先判断用户意图，再分发给对应模块。这样可以让咨询、预约、行为分析等逻辑保持独立，也更容易扩展新的 Agent。
-
-### 2. 用 RAG 解决专业知识回答
-
-按摩服务相关的项目介绍、注意事项、适用人群等内容更适合通过知识库维护。RAG 能让回答基于可控知识来源，而不是完全依赖大模型自由生成。
-
-### 3. 用用户行为让推荐更个性化
-
-系统会记录用户的咨询、预约和偏好信息。后续在推荐技师或服务项目时，可以结合历史行为，而不是每次都从零开始询问。
-
-### 4. 用分层架构保证可维护性
-
-Agent 负责智能流程，Service 负责业务逻辑，Repository 负责数据访问。每层只关心自己的职责，减少后期修改时的连锁影响。
-
-### 5. 为真实业务场景预留扩展空间
-
-项目目前以本地 SQLite 和单体服务为主，但架构上预留了模型提供商切换、MCP 外部服务接入、后台任务、缓存优化和云端部署的扩展方向。
-
-## 架构图
-
-![System Architecture](./architecture%20.jpg)
-
 ## 技术栈
 
-- **后端框架**：FastAPI、Uvicorn
-- **AI 框架**：LangChain
-- **大模型接入**：兼容 OpenAI 格式的模型提供商，例如 Qwen、DeepSeek、Zhipu、OpenAI、Azure OpenAI
-- **向量检索**：FAISS
-- **数据库**：SQLite、SQLAlchemy
-- **RAG 能力**：Embedding、向量索引、知识库检索、提示词构建
-- **流式响应**：Python AsyncGenerator
-- **前端页面**：Jinja2 模板、静态 CSS
-- **外部服务扩展**：MCP，用于天气等外部信息接入
-- **配置管理**：python-dotenv
-- **后台任务**：schedule
+| 层级 | 技术 |
+|------|------|
+| 后端框架 | FastAPI、Uvicorn |
+| AI 框架 | LangChain、PromptTemplate |
+| 大模型 | 兼容 OpenAI 格式，支持 Qwen / DeepSeek / Zhipu |
+| 向量检索 | FAISS、Embedding |
+| 数据库 | SQLite、SQLAlchemy |
+| 前端 | Jinja2、静态 CSS |
+| 任务调度 | schedule |
+| 外部扩展 | MCP（天气等） |
 
 ## 项目结构
 
@@ -292,11 +294,16 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 python -m uvicorn app:app --host 127.0.0.1 --port 8001 --reload
 ```
 
-启动后可以访问：
+## 快速验证
 
-- Web 页面：http://127.0.0.1:8000
-- API 文档：http://127.0.0.1:8000/docs
-- ReDoc 文档：http://127.0.0.1:8000/redoc
+启动服务后，可以按以下方式验证核心链路：
+
+1. 访问 Web 页面：http://127.0.0.1:8000
+2. 访问 API 文档：http://127.0.0.1:8000/docs
+3. 尝试输入：
+   - “你们有哪些服务项目？” → 触发 RAG 咨询
+   - “帮我预约明天下午的推拿” → 触发预约流程
+   - “帮我查一下我的历史预约” → 触发行为分析
 
 ## 测试
 
@@ -320,6 +327,13 @@ pytest tests/test_task_classification_agent.py
 - 技师排班：`web/templates/technician_schedule.html`
 - 用户行为分析：`web/templates/user_behavior_analysis.html`
 
+## 已知限制
+
+- 当前以单用户/默认会话为主，真实多用户隔离仍在迭代
+- 推荐调度器核心逻辑已预留，尚未完全落地
+- 流式输出为伪流式，首 token 延迟仍有优化空间
+- 评估体系目前以功能测试为主，离线指标回流与 CI/CD 门禁规划中
+
 ## 后续规划
 
 ### 更强的 Agent 自主能力
@@ -341,18 +355,6 @@ pytest tests/test_task_classification_agent.py
 - 优化向量检索性能、缓存策略和响应速度。
 - 支持 Docker 部署、云数据库和更标准的日志监控。
 
-## 项目价值
+## License
 
-这个项目把多 Agent、RAG、用户行为分析、预约调度和外部工具接入放在同一个真实业务场景中验证。它既是一个按摩门店智能前台原型，也可以作为学习 AI Agent 工程化、分层架构、RAG 系统和业务自动化的综合实践项目。
-
-
-
-------------------------------------------------------------
-这个项目是我最早开始自学大模型做的项目。上面的内容是当时（2025年7月左右完成的）。
-其实我在计划做更加复杂，符合时代趋势的Agent，预计在9月份完成，会分享在笔记中。
-但是很多朋友问我这个项目能不能参考，所以我索性总结开源了除了。值得一提的是，上面的内容是25年写的，当时如何配置环境，都是传统方法，写在README中，自己配置。 但是在2026年，不管是vibe coding的方法，还是环境配置的方法，都有了极大改进。
-
-我的项目配置的方法，现在都推荐使用SKILL，所以这里有setup-envrionment skill，一键配置。
-我也总结了更多的这个项目，放在2026年，如何包装，如何使用配套资源，面试真题，视频讲解，使用建议在我的大模型笔记中。
-👉 **请关注小红书：[不转到大模型不改名]（id:4740535877) 获取以上所有资源。**
-👉 b站： 骑猪撞宝马71
+MIT
