@@ -6,7 +6,10 @@
 
 from typing import Optional, Dict, Any, Callable
 from datetime import datetime, timedelta
+import logging
 from services.text_embedding import find_best_match_indices
+
+logger = logging.getLogger(__name__)
 
 
 class TechnicianFinder:
@@ -37,6 +40,9 @@ class TechnicianFinder:
             end_time = start_time + timedelta(minutes=duration_min)
             return start_time, end_time, duration_min
         except Exception:
+            # shortcut: 解析失败与“确实没有时间”无法区分，下游会把 None 当成合法值继续用；
+            # 需要区分时改成上抛并在上层给出“无法解析时间”的提示
+            logger.exception("解析预约时间失败")
             return None, None, None
     
     def find_specific_technician(self, technician_name: str, start_time: datetime, 

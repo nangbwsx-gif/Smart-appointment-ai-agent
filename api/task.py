@@ -30,4 +30,5 @@ async def classify_task(request: TaskClassificationRequest):
             data=result
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # 服务端异常不是客户端参数问题，用 500 而不是 400
+        raise HTTPException(status_code=500, detail=str(e))

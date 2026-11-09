@@ -170,6 +170,79 @@ def test_technicians_api_uses_isolated_database(client, tmp_db):
     assert {"id", "name"} <= set(body[0])
 
 
+def test_consultation_api_calls_agent_consult(client, monkeypatch):
+    """接口必须调 Agent 真实存在的方法（曾经调 process_consultation 导致 100% 失败）"""
+    class FakeAgent:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def consult(self, question):
+            return f"关于{question}的答案"
+
+    monkeypatch.setattr("agents.consultant_agent.ConsultantAgent", FakeAgent)
+
+    response = client.post(
+        "/api/consultation/ask", json={"user_id": "u1", "question": "价格"}
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["answer"] == "关于价格的答案"
+
+
+def test_appointment_api_calls_run_stream(client, monkeypatch):
+    """接口必须走 AppointmentAgent.run_stream（不存在 process_appointment_request）"""
+    class FakeAgent:
+        def __init__(self, session_id=None):
+            self.session_id = session_id
+
+        async def run_stream(self, user_input=None):
+            yield f"已收到：{user_input}"
+
+    monkeypatch.setattr("agents.appointment_agent.AppointmentAgent", FakeAgent)
+
+    response = client.post(
+        "/api/appointment/create",
+        json={
+            "user_id": "u1",
+            "service_type": "全身推拿",
+            "preferred_time": "2026-11-10 15:00",
+        },
+    )
+    assert response.status_code == 200
+    assert "全身推拿" in response.json()["data"]
+
+
+def test_add_knowledge_reports_write_failure(client, monkeypatch):
+    """写入失败不能谎报 success"""
+    from services.knowledge_service import KnowledgeService
+
+    async def fake_add_document(self, content, category, keywords=None):
+        return False
+
+    monkeypatch.setattr(KnowledgeService, "add_document", fake_add_document)
+
+    response = client.post(
+        "/api/knowledge/",
+        json={"question": "问题", "answer": "答案", "category": "测试"},
+    )
+    assert response.status_code == 500
+
+
+def test_user_behavior_analysis_reports_failure(client, monkeypatch):
+    """分析失败必须返回 5xx，不能伪装成“没有数据”"""
+    from agents.user_behavior_agent import UserBehaviorAgent
+
+    def boom(self, user_id):
+        raise RuntimeError("数据库挂了")
+
+    monkeypatch.setattr(UserBehaviorAgent, "get_user_analysis", boom)
+
+    response = client.get("/api/user-behavior/analysis")
+    assert response.status_code == 500
+
+
 def test_task_classify_rejects_unknown_payload(client):
     """请求体字段名是 text，缺失时由 pydantic 校验返回 422"""
     response = client.post("/api/task/classify", json={})

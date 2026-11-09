@@ -24,8 +24,8 @@ class PatternAnalyzer:
     def behavior_db(self):
         """为了向后兼容，提供behavior_db属性"""
         if hasattr(self, 'behavior_service') and self.behavior_service:
-            # 返回一个适配器，将调用转发到behavior_service
-            return self.behavior_service.user_behavior_repo
+            # 兼容两种入参：service（取 user_behavior_repo）或直接传 repo
+            return getattr(self.behavior_service, 'user_behavior_repo', self.behavior_service)
         else:
             # 如果没有service，返回None（应该在组件初始化时提供适当的处理）
             return None

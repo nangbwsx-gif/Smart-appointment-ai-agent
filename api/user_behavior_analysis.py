@@ -51,10 +51,10 @@ async def get_user_analysis(user_id: str = "default_user") -> UserAnalysisRespon
             should_send_reminder=analysis.get('should_send_reminder', False)
         )
     except Exception as e:
-        # 记录异常日志并返回空数据，而不是硬编码的假数据
+        # 分析失败与“确实没有数据”必须区分：失败返回 500，不能伪装成空数据
         import logging
-        logging.error(f"获取用户分析数据失败: {e}")
-        return UserAnalysisResponse()
+        logging.error(f"获取用户分析数据失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取用户分析数据失败: {str(e)}")
 
 
 @router.get("/analysis", response_model=UserAnalysisResponse)

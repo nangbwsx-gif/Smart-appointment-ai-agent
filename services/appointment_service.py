@@ -90,7 +90,9 @@ class AppointmentService:
         try:
             return self.technician_repo.is_technician_available(technician_id, start_time, end_time)
         except Exception as e:
-            logger.error(f"检查技师可用性失败：{e}")
+            # shortcut: 返回 False 与“技师已被占用”语义相同，DB 故障会被误判为不可用；
+            # 需要区分时改为上抛自定义异常
+            logger.error(f"检查技师可用性失败：{e}", exc_info=True)
             return False
     
     def add_technician(self, name: str, gender: str = None, strength: str = None) -> Optional[int]:

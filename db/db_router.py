@@ -148,5 +148,5 @@ class UserBehaviorDBRouter:
     def get_user_preferences(self, user_id: str):
         return self.user_behavior_repo.get_user_preferences(user_id)
 
-    def update_user_preference(self, user_id: str, preference_type: str, preference_value: str, confidence_score: int = 1) -> bool:
-        return self.user_behavior_repo.update_user_preference(user_id, preference_type, preference_value, confidence_score)
+    def update_user_preference(self, user_id: str, preference_type: str, preference_value: str) -> bool:
+        return self.user_behavior_repo.update_user_preference(user_id, preference_type, preference_value)

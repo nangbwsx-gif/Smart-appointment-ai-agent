@@ -113,9 +113,10 @@ class ClassificationProcessor:
                     async with self.agent_router.consultant_agent as agent:
                         return await agent.consult(task)
                 
-        except Exception as e:
+        except Exception:
             self.state_manager.force_reset()
-            return f"处理任务时发生错误: {str(e)}"
+            # 服务端编程错误不应该以 200 + 文案的形式返回给用户，由 API 层转 5xx
+            raise
     
     def get_current_state_info(self) -> dict:
         """获取当前处理状态信息"""
