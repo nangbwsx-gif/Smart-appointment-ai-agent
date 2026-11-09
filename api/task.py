@@ -18,9 +18,12 @@ async def classify_task(request: TaskClassificationRequest):
     """分类任务"""
     try:
         # 简化实现 - 直接导入需要的agent
+        # TaskClassificationAgent 需要预约与咨询两个 agent 才能构造
         from agents.task_classification_agent import TaskClassificationAgent
-        agent = TaskClassificationAgent()
-        result = await agent.classify_task(request.message)
+        from agents.appointment_agent import AppointmentAgent
+        from agents.consultant_agent import ConsultantAgent
+        agent = TaskClassificationAgent(AppointmentAgent(), ConsultantAgent())
+        result = await agent.classify_task(request.text)
         
         return DataResponse(
             message="任务分类成功",

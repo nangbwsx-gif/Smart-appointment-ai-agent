@@ -11,6 +11,9 @@ ConsultantAgent 功能测试
 import pytest
 from agents.consultant_agent import ConsultantAgent
 
+# 这些用例会真实调用 LLM，CI 中由带凭据的任务运行
+pytestmark = pytest.mark.llm
+
 
 class TestConsultantAgentCoreFeatures:
     """测试咨询代理核心功能"""

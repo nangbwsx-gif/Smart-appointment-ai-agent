@@ -12,6 +12,9 @@ import pytest
 import asyncio
 from agents.appointment_agent import AppointmentAgent
 
+# 这些用例会真实调用 LLM，CI 中由带凭据的任务运行
+pytestmark = pytest.mark.llm
+
 
 class TestAppointmentAgentCoreFeatures:
     """测试预约代理核心功能"""
