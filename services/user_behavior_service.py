@@ -59,12 +59,13 @@ class UserBehaviorService:
             logger.error(f"获取用户偏好失败：{e}")
             return []
     
-    def update_user_preference(self, user_id: str, preference_type: str, 
-                             preference_value: str, confidence_score: int = 1) -> bool:
+    def update_user_preference(self, user_id: str, preference_type: str,
+                             preference_value: str) -> bool:
         """更新用户偏好"""
         try:
+            # repo 契约为 3 参，置信度由 repo 内部维护
             return self.user_behavior_repo.update_user_preference(
-                user_id, preference_type, preference_value, confidence_score
+                user_id, preference_type, preference_value
             )
         except Exception as e:
             logger.error(f"更新用户偏好失败：{e}")

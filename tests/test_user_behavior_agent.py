@@ -15,6 +15,9 @@ import uuid
 from agents.user_behavior_agent import UserBehaviorAgent
 from datetime import datetime, timedelta
 
+# 这些用例会真实调用 LLM，CI 中由带凭据的任务运行
+pytestmark = pytest.mark.llm
+
 
 def _record(agent, user_id, action_type="appointment", action_data=None, technician_id=None):
     """按用户写入一条行为，便于测试之间互不干扰"""
