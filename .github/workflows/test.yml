@@ -32,9 +32,17 @@ jobs:
 
   llm-tests:
     name: 完整测试（需要 LLM 凭据）
-    # 未配置凭据时自动跳过，避免 PR 因缺 secret 而失败
-    if: ${{ secrets.LLM_API_KEY != '' }}
     runs-on: ubuntu-latest
+    # job 级 if 里不能引用 secrets，改成在步骤里用 env 判断，未配置凭据就跳过
+    env:
+      MODEL_PROVIDER: openai-compatible
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL || 'https://api.minimax.chat/v1' }}
+      LLM_MODEL: ${{ secrets.LLM_MODEL || 'MiniMax-M3.1-Flash' }}
+      EMBEDDING_PROVIDER: ${{ secrets.EMBEDDING_PROVIDER || 'minimax' }}
+      EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+      EMBEDDING_BASE_URL: ${{ secrets.EMBEDDING_BASE_URL || 'https://api.minimax.chat/v1' }}
+      EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL || 'embo-01' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,16 +55,12 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
 
-      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: 未配置凭据时跳过
+        if: ${{ env.LLM_API_KEY == '' }}
+        run: echo "未配置 LLM_API_KEY，跳过完整测试"
 
       - name: 运行完整用例
-        run: python -m pytest -q
-        env:
-          MODEL_PROVIDER: openai-compatible
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL || 'https://api.minimax.chat/v1' }}
-          LLM_MODEL: ${{ secrets.LLM_MODEL || 'MiniMax-M3.1-Flash' }}
-          EMBEDDING_PROVIDER: ${{ secrets.EMBEDDING_PROVIDER || 'minimax' }}
-          EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
-          EMBEDDING_BASE_URL: ${{ secrets.EMBEDDING_BASE_URL || 'https://api.minimax.chat/v1' }}
-          EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL || 'embo-01' }}
+        if: ${{ env.LLM_API_KEY != '' }}
+        run: |
+          pip install -r requirements.txt -r requirements-dev.txt
+          python -m pytest -q
