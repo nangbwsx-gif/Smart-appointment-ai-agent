@@ -16,14 +16,16 @@ import logging
 class PreferenceManager:
     """偏好管理器 - 负责用户偏好的管理和分析"""
     
-    def __init__(self, behavior_service = None):
+    def __init__(self, behavior_service = None, user_id: str = "default_user"):
         """
         初始化偏好管理器
         
         Args:
             behavior_service: 用户行为服务实例
+            user_id: 偏好归属的用户ID（数据库层按用户隔离）
         """
         self.behavior_service = behavior_service
+        self.user_id = user_id
         self.logger = logging.getLogger(__name__)
     
     @property
@@ -76,7 +78,7 @@ class PreferenceManager:
             technician_id: 技师ID
         """
         try:
-            self.behavior_db.update_user_preference('technician', str(technician_id))
+            self.behavior_db.update_user_preference(self.user_id, 'technician', str(technician_id))
             self.logger.info(f"更新技师偏好: {technician_id}")
         except Exception as e:
             self.logger.error(f"更新技师偏好失败: {str(e)}")
@@ -99,7 +101,7 @@ class PreferenceManager:
             else:
                 time_period = '晚上'
             
-            self.behavior_db.update_user_preference('time_period', time_period)
+            self.behavior_db.update_user_preference(self.user_id, 'time_period', time_period)
             self.logger.info(f"更新时间偏好: {time_period}")
         except Exception as e:
             self.logger.error(f"更新时间偏好失败: {str(e)}")
@@ -113,7 +115,7 @@ class PreferenceManager:
         """
         try:
             duration_str = str(duration)
-            self.behavior_db.update_user_preference('duration', duration_str)
+            self.behavior_db.update_user_preference(self.user_id, 'duration', duration_str)
             self.logger.info(f"更新时长偏好: {duration_str}")
         except Exception as e:
             self.logger.error(f"更新时长偏好失败: {str(e)}")
@@ -126,7 +128,7 @@ class PreferenceManager:
             service: 服务项目
         """
         try:
-            self.behavior_db.update_user_preference('service', service)
+            self.behavior_db.update_user_preference(self.user_id, 'service', service)
             self.logger.info(f"更新服务偏好: {service}")
         except Exception as e:
             self.logger.error(f"更新服务偏好失败: {str(e)}")
@@ -139,7 +141,7 @@ class PreferenceManager:
             technician_type: 技师类型偏好（如：力气大、手法轻等）
         """
         try:
-            self.behavior_db.update_user_preference('technician_type', technician_type)
+            self.behavior_db.update_user_preference(self.user_id, 'technician_type', technician_type)
             self.logger.info(f"更新技师类型偏好: {technician_type}")
         except Exception as e:
             self.logger.error(f"更新技师类型偏好失败: {str(e)}")
@@ -152,7 +154,11 @@ class PreferenceManager:
             Dict: 用户偏好数据
         """
         try:
-            return self.behavior_db.get_user_preferences()
+            preferences = self.behavior_db.get_user_preferences(self.user_id)
+            # 仓库层返回偏好列表，这里归一化成 {类型: 值} 便于上层直接读取
+            if isinstance(preferences, list):
+                return {p.get('preference_type'): p.get('preference_value') for p in preferences}
+            return preferences or {}
         except Exception as e:
             self.logger.error(f"获取用户偏好失败: {str(e)}")
             return {}
@@ -242,7 +248,7 @@ class PreferenceManager:
             preference_type: 偏好类型
         """
         try:
-            self.behavior_db.update_user_preference(preference_type, None)
+            self.behavior_db.update_user_preference(self.user_id, preference_type, None)
             self.logger.info(f"清除偏好: {preference_type}")
         except Exception as e:
             self.logger.error(f"清除偏好失败: {str(e)}")
