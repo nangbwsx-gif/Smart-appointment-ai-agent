@@ -1,0 +1,62 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 18 * * *"   # 每天 UTC 18:30 跑一次完整测试
+
+jobs:
+  mock-tests:
+    name: 路由层测试（无需凭据）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # 只跑不依赖真实 LLM 的用例：LLM 相关用例已标记 pytest.mark.llm
+      - name: 运行非 LLM 用例
+        run: python -m pytest -q -m "not llm"
+
+  llm-tests:
+    name: 完整测试（需要 LLM 凭据）
+    # 未配置凭据时自动跳过，避免 PR 因缺 secret 而失败
+    if: ${{ secrets.LLM_API_KEY != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: 运行完整用例
+        run: python -m pytest -q
+        env:
+          MODEL_PROVIDER: openai-compatible
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL || 'https://api.minimax.chat/v1' }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL || 'MiniMax-M3.1-Flash' }}
+          EMBEDDING_PROVIDER: ${{ secrets.EMBEDDING_PROVIDER || 'minimax' }}
+          EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+          EMBEDDING_BASE_URL: ${{ secrets.EMBEDDING_BASE_URL || 'https://api.minimax.chat/v1' }}
+          EMBEDDING_MODEL: ${{ secrets.EMBEDDING_MODEL || 'embo-01' }}
