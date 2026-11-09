@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import os
 
+import requests
 from dotenv import load_dotenv
+from langchain_core.embeddings import Embeddings
 from langchain_openai import (
     AzureChatOpenAI,
     AzureOpenAIEmbeddings,
@@ -21,7 +23,37 @@ load_dotenv()
 
 
 CHAT_PROVIDERS = {"openai", "qwen", "deepseek", "zhipu", "openai-compatible"}
-EMBEDDING_PROVIDERS = {"openai", "qwen", "zhipu", "openai-compatible"}
+EMBEDDING_PROVIDERS = {"openai", "qwen", "zhipu", "openai-compatible", "minimax"}
+
+
+class MiniMaxEmbeddings(Embeddings):
+    """MiniMax 原生 embeddings 接口：参数是 texts/type，而非 OpenAI 的 input。"""
+
+    def __init__(self, api_key: str, base_url: str, model: str = "embo-01", batch_size: int = 32):
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.batch_size = batch_size
+
+    def _embed(self, texts: list[str], type_: str) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), self.batch_size):
+            chunk = texts[start : start + self.batch_size]
+            resp = requests.post(
+                f"{self.base_url}/embeddings",
+                json={"model": self.model, "texts": chunk, "type": type_},
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=60,
+            )
+            resp.raise_for_status()
+            vectors.extend(resp.json()["vectors"])
+        return vectors
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self._embed(texts, "db")
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._embed([text], "query")[0]
 
 
 def _env(name: str, default: str | None = None) -> str | None:
@@ -81,6 +113,16 @@ def create_embedding_model():
             api_key=SecretStr(_env("AZURE_OPENAI_API_KEY", "") or ""),
             api_version=_env("AZURE_OPENAI_EMBEDDING_VERSION", "2023-05-15"),
             azure_endpoint=_env("AZURE_OPENAI_ENDPOINT_EMBEDDING"),
+        )
+
+    if provider == "minimax":
+        return MiniMaxEmbeddings(
+            api_key=_env("EMBEDDING_API_KEY", _env("LLM_API_KEY", "")) or "",
+            base_url=_env(
+                "EMBEDDING_BASE_URL", _env("LLM_BASE_URL", "https://api.minimax.chat/v1")
+            )
+            or "",
+            model=_env("EMBEDDING_MODEL", "embo-01") or "embo-01",
         )
 
     if provider in EMBEDDING_PROVIDERS:

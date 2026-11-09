@@ -16,14 +16,16 @@ import logging
 class BehaviorRecorder:
     """行为记录器 - 负责用户行为的记录和存储"""
     
-    def __init__(self, behavior_service = None):
+    def __init__(self, behavior_service = None, user_id: str = "default_user"):
         """
         初始化行为记录器
         
         Args:
             behavior_service: 用户行为服务实例
+            user_id: 行为归属的用户ID（数据库层所有查询都按用户过滤）
         """
         self.behavior_service = behavior_service
+        self.user_id = user_id
         self.logger = logging.getLogger(__name__)
     
     @property
@@ -54,7 +56,7 @@ class BehaviorRecorder:
             # 如果有behavior_service则使用它，否则降级到数据库直接访问
             if self.behavior_service:
                 success = self.behavior_service.record_behavior(
-                    user_id="default_user",  # 默认用户ID
+                    user_id=self.user_id,
                     action_type=action_type,
                     action_data=action_data,
                     technician_id=str(technician_id) if technician_id else None,
@@ -64,7 +66,7 @@ class BehaviorRecorder:
             else:
                 # 向后兼容：直接使用数据库
                 behavior_id = self.behavior_db.record_behavior(
-                    user_id="default_user",  # 默认用户ID
+                    user_id=self.user_id,
                     action_type=action_type,
                     action_data=action_data,
                     technician_id=technician_id,
@@ -128,6 +130,7 @@ class BehaviorRecorder:
         """
         try:
             return self.behavior_db.get_user_behaviors(
+                user_id=self.user_id,
                 action_type=action_type,
                 days_back=days_back
             )
@@ -146,7 +149,7 @@ class BehaviorRecorder:
             Dict: 统计信息
         """
         try:
-            return self.behavior_db.get_user_statistics(days_back=days_back)
+            return self.behavior_db.get_user_statistics(user_id=self.user_id, days_back=days_back)
         except Exception as e:
             self.logger.error(f"获取行为统计失败: {str(e)}")
             return {}

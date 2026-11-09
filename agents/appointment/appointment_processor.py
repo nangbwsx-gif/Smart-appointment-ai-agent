@@ -13,7 +13,7 @@ from .input_parser import InputParser
 from .technician_finder import TechnicianFinder
 from .message_builder import MessageBuilder
 from .appointment_database import AppointmentDatabase
-from langchain.agents import AgentExecutor, create_openai_tools_agent
+from langchain_classic.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.tools import BaseTool
 from langchain_core.prompts import ChatPromptTemplate
 

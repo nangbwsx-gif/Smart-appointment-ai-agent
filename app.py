@@ -13,6 +13,12 @@ from services.recommendation_service import RecommendationService
 from typing import List, Optional
 import logging
 import asyncio
+import sys
+
+# Windows 控制台默认 GBK，项目里的中文/emoji 日志会抛 UnicodeEncodeError
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # 导入路由
 from api import api_routers  #将所有API接口的地址拿来 后面会统一注册进FASTAPI
