@@ -74,6 +74,13 @@ class ClassificationProcessor:
             yield f"[ERROR]处理任务时发生错误: {str(e)}"
             self.state_manager.force_reset()
     
+    async def _run_appointment(self, task: str) -> str:
+        """AppointmentAgent 只提供流式接口，这里收集成字符串"""
+        result = ""
+        async for token in self.agent_router.appointment_agent.run_stream(user_input=task):
+            result += token
+        return result
+
     async def process_task_sync(self, task: str) -> str:
         """
         同步处理任务分类和路由（非流式）
@@ -91,7 +98,7 @@ class ClassificationProcessor:
                 
                 if category == "appointment" and self.agent_router.appointment_agent:
                     self.state_manager.transition_to_appointment()
-                    return await self.agent_router.appointment_agent.run(user_input=task)
+                    return await self._run_appointment(task)
                 elif category == "query" and self.agent_router.consultant_agent:
                     self.state_manager.transition_to_consultation()
                     async with self.agent_router.consultant_agent as agent:
@@ -101,14 +108,15 @@ class ClassificationProcessor:
             else:
                 # 根据当前状态继续处理
                 if self.state_manager.is_in_appointment_flow():
-                    return await self.agent_router.appointment_agent.run(user_input=task)
+                    return await self._run_appointment(task)
                 elif self.state_manager.is_in_consultation_flow():
                     async with self.agent_router.consultant_agent as agent:
                         return await agent.consult(task)
                 
-        except Exception as e:
+        except Exception:
             self.state_manager.force_reset()
-            return f"处理任务时发生错误: {str(e)}"
+            # 服务端编程错误不应该以 200 + 文案的形式返回给用户，由 API 层转 5xx
+            raise
     
     def get_current_state_info(self) -> dict:
         """获取当前处理状态信息"""

@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import uuid
+import logging
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from config.model_provider import create_chat_model
 from .appointment import (
@@ -140,6 +141,7 @@ class AppointmentAgent:
                 yield token
                 
         except Exception as e:
+            logging.getLogger(__name__).error(f"处理用户输入异常: {e}", exc_info=True)
             yield self.message_builder.create_parse_error_message()
 
     def _reset_state_after_appointment(self):

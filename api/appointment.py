@@ -19,12 +19,18 @@ async def create_appointment(request: AppointmentRequest):
     try:
         # 简化实现 - 直接导入需要的服务
         from agents.appointment_agent import AppointmentAgent
-        agent = AppointmentAgent()
-        result = await agent.process_appointment_request(request.dict())
+        agent = AppointmentAgent(session_id=request.user_id)
+        # AppointmentAgent 只有流式入口，这里把请求字段拼成一句话并收集 token
+        text = f"我想预约{request.service_type}，时间是{request.preferred_time}"
+        if request.notes:
+            text += f"，备注：{request.notes}"
+        result = ""
+        async for token in agent.run_stream(user_input=text):
+            result += token
         
         return DataResponse(
             message="预约创建成功",
             data=result
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

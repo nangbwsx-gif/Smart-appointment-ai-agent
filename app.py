@@ -55,7 +55,8 @@ async def initialize_system():
         # 初始化技师服务
         logger.info("👨‍⚕️ 初始化技师服务...")
         technician_service = TechnicianService()
-        technician_service.initialize_default_technicians() # 同步方法，在内存里快速初始化默认技师，很快，没必要异步
+        if not technician_service.initialize_default_technicians(): # 同步方法，在内存里快速初始化默认技师，很快，没必要异步
+            logger.warning("⚠ 部分默认技师初始化失败，技师库可能不完整")
         
         # 初始化推荐服务
         logger.info("🎯 启动推荐调度服务...")

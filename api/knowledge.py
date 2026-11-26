@@ -71,13 +71,18 @@ async def get_knowledge(knowledge_id: int):
 async def add_knowledge(item: KnowledgeItem):
     """添加新的知识条目"""
     try:
-        knowledge_service = await app.get_knowledge_service()
+        from services.knowledge_service import KnowledgeService
+        knowledge_service = KnowledgeService()
+        if not knowledge_service.initialized:
+            await knowledge_service.initialize()
         # 将问答组合成文档内容
         content = f"问题: {item.question}\n答案: {item.answer}"
         result = await knowledge_service.add_document(
             content=content,
             category=item.category
         )
+        if not result:
+            raise HTTPException(status_code=500, detail="知识条目写入失败")
         return {
             "status": "success",
             "message": "知识条目添加成功",
@@ -97,13 +102,15 @@ async def update_knowledge(knowledge_id: int, item: KnowledgeItem):
             await knowledge_service.initialize()
         # 将问答组合成文档内容
         content = f"问题: {item.question}\n答案: {item.answer}"
+        if knowledge_service.get_document(knowledge_id) is None:
+            raise HTTPException(status_code=404, detail="知识条目不存在")
         result = await knowledge_service.update_document(
             doc_id=knowledge_id,
             content=content,
             category=item.category
         )
         if not result:
-            raise HTTPException(status_code=404, detail="知识条目不存在")
+            raise HTTPException(status_code=500, detail="知识条目更新失败")
         return {
             "status": "success",
             "message": "知识条目更新成功",
@@ -123,9 +130,11 @@ async def delete_knowledge(knowledge_id: int):
         knowledge_service = KnowledgeService()
         if not knowledge_service.initialized:
             await knowledge_service.initialize()
+        if knowledge_service.get_document(knowledge_id) is None:
+            raise HTTPException(status_code=404, detail="知识条目不存在")
         result = await knowledge_service.delete_document(knowledge_id)
         if not result:
-            raise HTTPException(status_code=404, detail="知识条目不存在")
+            raise HTTPException(status_code=500, detail="知识条目删除失败")
         return {
             "status": "success",
             "message": "知识条目删除成功"

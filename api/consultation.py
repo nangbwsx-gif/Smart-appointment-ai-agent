@@ -19,12 +19,13 @@ async def ask_consultation(request: ConsultationRequest):
     try:
         # 简化实现 - 直接导入需要的agent
         from agents.consultant_agent import ConsultantAgent
-        agent = ConsultantAgent()
-        result = await agent.process_consultation(request.question)
+        # ConsultantAgent 需要通过 async with 初始化知识库检索器
+        async with ConsultantAgent() as agent:
+            result = await agent.consult(request.question)
         
         return DataResponse(
             message="咨询处理成功",
             data={"answer": result, "question": request.question}
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))

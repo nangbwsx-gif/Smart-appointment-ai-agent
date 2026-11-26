@@ -89,8 +89,9 @@ class TechnicianService:
                     logger.debug(f"添加技师: {tech_data['name']} (ID: {tech_id})")
                     
                 except Exception as e:
+                    # 单个技师失败不应中断剩余技师的初始化
                     logger.error(f"添加技师 {tech_data['name']} 失败: {e}")
-                    return False
+                    continue
             
             # 验证初始化结果
             final_count = len(self.db.technicians.get_all_technicians())

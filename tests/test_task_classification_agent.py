@@ -13,6 +13,9 @@ from agents.task_classification_agent import TaskClassificationAgent
 from agents.appointment_agent import AppointmentAgent
 from agents.consultant_agent import ConsultantAgent
 
+# 这些用例会真实调用 LLM，CI 中由带凭据的任务运行
+pytestmark = pytest.mark.llm
+
 
 class TestTaskClassificationAgentRealWorkflow:
     """测试任务分类代理真实工作流程"""

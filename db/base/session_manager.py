@@ -11,7 +11,7 @@ def _ensure_sqlite_dir(db_path: str) -> None:
         return
     db_file = db_path[len("sqlite:///") :]
     parent = os.path.dirname(db_file)
-    if parent and not os.path.isabs(db_file):
+    if parent:
         os.makedirs(parent, exist_ok=True)
 
 
